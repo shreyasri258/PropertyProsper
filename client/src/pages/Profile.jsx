@@ -11,7 +11,7 @@ import {
 import { app } from "../firebase";
 
 export default function Profile() {
-  const { currentUser,loading,error } = useSelector((state) => state.user);
+  const { currentUser, loading, error } = useSelector((state) => state.user);
   const fileRef = useRef(null);
   const [file, setFile] = useState(undefined);
   const [filePerc, setFilePerc] = useState(0);
@@ -30,21 +30,23 @@ export default function Profile() {
     const fileName = new Date().getTime() + file.name;
     const storageRef = ref(storage, fileName);
     const uploadTask = uploadBytesResumable(storageRef, file);
-    uploadTask.on("state_changed", (snapshot) => {
-      const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-      setFilePerc(Math.round(progress));
-      console.log("upload is" + progress + " % done");
-      
-    },
-    (error) => {
-      setFileUplaodError(true);
-    },
-    () => {
-      getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-        setFormData({ ...formData, avatar: downloadURL });
-     } );
-    }
-  );
+    uploadTask.on(
+      "state_changed",
+      (snapshot) => {
+        const progress =
+          (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        setFilePerc(Math.round(progress));
+        console.log("upload is" + progress + " % done");
+      },
+      (error) => {
+        setFileUplaodError(true);
+      },
+      () => {
+        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+          setFormData({ ...formData, avatar: downloadURL });
+        });
+      }
+    );
   };
   return (
     <div className="p-3 max-w-lg mx-auto">
@@ -63,17 +65,17 @@ export default function Profile() {
           alt="profile"
           className="rounded-full h-24 w-24 object-cover cursor-pointer self-center mt-2"
         ></img>
-        <p className='text-sm self-center'>
+        <p className="text-sm self-center">
           {fileUplaodError ? (
-            <span className='text-red-700'>
+            <span className="text-red-700">
               Error Image upload (image must be less than 2 mb)
             </span>
           ) : filePerc > 0 && filePerc < 100 ? (
-            <span className='text-slate-700'>{`Uploading ${filePerc}%`}</span>
+            <span className="text-slate-700">{`Uploading ${filePerc}%`}</span>
           ) : filePerc === 100 ? (
-            <span className='text-green-700'>Image successfully uploaded!</span>
+            <span className="text-green-700">Image successfully uploaded!</span>
           ) : (
-            ''
+            ""
           )}
         </p>
         <input
