@@ -1,6 +1,79 @@
-import React from "react";
+import {
+  getDownloadURL,
+  getStorage,
+  uploadBytesResumable,
+  ref
+} from "firebase/storage";
+import React, { useState } from "react";
+import { app } from "../firebase";
 
 export default function CreateListing() {
+    const [uplaoding,setUploading]= useState(false);
+    const [files, setFiles] = useState([]);
+  const [imageUploadError,SetImageUploadError]=useState(false);
+  
+  const [formData, setFormData] = useState({
+    imageUrls: [],
+  });
+  //console.log(files);
+  console.log(formData);
+  const handleRemoveImage = (index) => {
+    setFormData({
+      ...formData,
+      imageUrls: formData.imageUrls.filter((_, i) => i !== index),
+    });
+  };
+  const handleImageSubmit = (e) => {
+    if (files.length > 0 && files.length +formData.imageUrls.length < 7) {
+        setUploading(true);
+        SetImageUploadError(false);
+      const promises = [];
+      for (let i = 0; i < files.length; i++) {
+        promises.push(storeImage(files[i]));
+      }
+      Promise.all(promises).then((urls) => {
+        setFormData({
+          ...formData,
+          imageUrls: formData.imageUrls.concat(urls),
+        });
+        SetImageUploadError(false);
+        setUploading(false);
+        
+    }).catch((err)=>{
+    
+        SetImageUploadError('Image Upload Failed (2mb max per image)');
+    setUploading(false);
+    })
+      
+    }
+    else{
+        SetImageUploadError('Image Upload Failed ,You can only upload 6 images per listing')
+        setUploading(false);
+    }
+  };
+  const storeImage = async (file) => {
+    return new Promise((resolve, reject) => {
+      const storage = getStorage(app);
+      const fileName = new Date().getTime() + file.name;
+      const storageRef = ref(storage, fileName);
+      const uploadTask = uploadBytesResumable(storageRef, file);
+      uploadTask.on(
+        "state_changed",
+        (snapshot)=>{
+            const progress = (snapshot.bytesTransferred/snapshot.totalBytes)*100;
+            console.log(`upload is ${progress}% done` )
+        },
+        (error) => {
+          reject(error);
+        },
+        () => {
+          getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+            resolve(downloadURL);
+          });
+        }
+      );
+    });
+  };
   return (
     <div>
       <main className="p-3 max-w-4xl mx-auto">
@@ -108,17 +181,58 @@ export default function CreateListing() {
             </div>
           </div>
           <div className="flex flex-col fex-l gap-4">
-<p className="font-semibold">Images:
-<span className="font-normal text-grey-600 ml-2">The First image will be the cover (max 6)</span>
-</p>
-<div className="flex gap-4">
-<input className="p-3 border-gray-300 rounded w-full" type="file" id="images" accept="image/*" multiple  />
-<button className="p-3 text-green-700 border border-green-700 rounded uppercase hover:shadow-lg disabled:opacity-80"> Upload</button>
-</div>
-<button className="p-3 bg-slate-700 text-white rounded-lg uppercase hover:opacity-95 disable:opacity-80">Create Listing</button>
-     
+            <p className="font-semibold">
+              Images:
+              <span className="font-normal text-grey-600 ml-2">
+                The First image will be the cover (max 6)
+              </span>
+            </p>
+            <div className="flex gap-4">
+              <input
+                onChange={(e) => setFiles(e.target.files)}
+                className="p-3 border-gray-300 rounded w-full"
+                type="file"
+                id="images"
+                accept="image/*"
+                multiple
+              />
+              <button
+                type="button"
+                disabled = {uplaoding}
+                onClick={handleImageSubmit}
+                className="p-3 text-green-700 border border-green-700 rounded uppercase hover:shadow-lg disabled:opacity-80"
+              >
+                {uplaoding?'Uploading':'Upload'}
+                
+              </button>
+             
+            </div>
+            <p className="text-red-700 text-sm">{imageUploadError && imageUploadError}</p>
+            {formData.imageUrls.length > 0 &&
+            formData.imageUrls.map((url, index) => (
+              <div
+                key={url}
+                className='flex justify-between p-3 border items-center'
+              >
+                <img
+                  src={url}
+                  alt='listing image'
+                  className='w-20 h-20 object-contain rounded-lg'
+                />
+                <button
+                  type='button'
+                  onClick={() => handleRemoveImage(index)}
+                  className='p-3 text-red-700 rounded-lg uppercase hover:opacity-75'
+                >
+                  Delete
+                </button>
+              </div>
+            ))}
+            <button className="p-3 bg-slate-700 text-white rounded-lg uppercase hover:opacity-95 disable:opacity-80">
+              Create Listing
+            </button>
           </div>
-            </form>
+          </form>
       </main>
     </div>
   );
